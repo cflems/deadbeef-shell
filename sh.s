@@ -176,6 +176,8 @@ parse1:
 	je subz
 	cmp byte [r8+r15], 0x2f
 	je sabsf
+	cmp byte [r8+r15], 0x2e
+	je sabsf
 
 parse1r:
 	dec r8
@@ -184,6 +186,8 @@ parse1r:
 	jmp parse1
 
 sabsf:
+	cmp r8, 0x1
+	jg parse1r
 	mov r13, 0x1
 	jmp parse1r
 
