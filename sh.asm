@@ -110,7 +110,6 @@ _wait_for_proc:
   syscall
 
   mov r10, r12 ;restore
-  ;mov r10,30
 
 	mov dword [cpid], -0x1
 	jmp _rloop
@@ -206,8 +205,8 @@ _parse: ; needs special commands: cd exit export eval
 	;syscall 80 is chdir, so do that first, it's easiest
 	;It takes a path string.
 	;also needs pipes (|, >, <)
-	push 0x0
-	xor r13, r13
+	xor r13, r13 ;for _strlen
+	push r13 ;push 0
 	jmp _strlen
 
 ;r8 holds strlen so we start at the end and parse backwards
