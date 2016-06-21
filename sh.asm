@@ -210,7 +210,6 @@ _parse1:
 ;the end of the string or directory name
 _parse1r:
 	dec r8
-	cmp r8, 0x0
 	jl _parse2
 	jmp _parse1
 
