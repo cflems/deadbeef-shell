@@ -8,11 +8,17 @@ section .data
 	env: db "/etc/environment", 0x0
 	boem: db "Error: input overflows buffer", 0x2e, `\n`
 
+  ;Flag indicating ability to execute
+  X_OK equ 0x1
+
+  ;Indicates that a file can be accessed in the way specified
+  F_OK equ 0x0
   ;Syscall constants
   sys_read equ 0x00
   sys_write equ 0x01
   sys_open equ 0x02
   sys_close equ 0x03
+  sys_access equ 0x15
   stub_fork equ 0x39
   stub_execve equ 0x3b
   sys_exit equ 0x3c
@@ -254,24 +260,18 @@ _parse4: ; not found
 	syscall
 	jmp _rloop
 
-; Checks that the program rbx exists before doing anything, this is hacky, slow
-; and should therefore be replaced by a version using sys_access with flag X_OK
+; Checks that the program rbx can be executed
 _parse5:
 	pop r8
 
-	mov rax, sys_open
-	mov rdi, rbx
-	xor rsi, rsi
-	xor rdx, rdx
+  mov rax, sys_access
+  mov rdi, rbx
+  mov rsi, X_OK
 	syscall
 
-  ;Check if it was opened successfully to check if it exists
-	cmp rax, 0x0
+  ;Check if it can be executed
+	cmp rax, F_OK
 	jl _parse3
-
-	mov rdi, rax
-	mov rax, sys_close
-	syscall
 
 ; We'll fall through to here if the file is accessible, therefore we should execute it
 _parse6:
@@ -279,18 +279,13 @@ _parse6:
 	jmp _exec
 
 _parse7: ; absolute path
-	mov rax, sys_open
-	mov rdi, r15
-	xor rsi, rsi
-	xor rdx, rdx
-	syscall
+  mov rax, sys_access
+  mov rdi, rbx
+  mov rsi, X_OK
+  syscall
 
-	cmp rax, 0x0
+	cmp rax, F_OK
 	jl _parse4
-
-	mov rdi, rax
-	mov rax, sys_close
-	syscall
 
 	mov r13, r15
 	jmp _exec
