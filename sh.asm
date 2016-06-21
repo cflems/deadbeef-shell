@@ -24,6 +24,7 @@ section .data
   sys_exit equ 0x3c
   sys_wait4 equ 0x3d
   sys_kill equ 0x3e
+  sys_waitid equ 0xf7
 
 
 section .text
@@ -81,7 +82,7 @@ _exec:
 	syscall
 	mov dword [cpid], eax
 	cmp dword [cpid], 0x0
-	jne _wait4_it
+	jne _wait_for_proc
 
 	; now that we know what to execute, do so
 	mov rax, stub_execve
@@ -93,14 +94,15 @@ _exec:
 	; and now kill the child process
 	jmp _quit
 
-_wait4_it:
-	;This function is obsolete, replace with 247 (sys_waitid)
-	mov rdi, rax
-	mov rax, sys_wait4
-	xor rsi, rsi ; null status pointer
-	xor rdx, rdx
-	xor rcx, rcx ; null rusage pointer
-	syscall
+;waits for the process to close
+_wait_for_proc:
+  mov rsi, rax
+  mov rax, sys_waitid
+  mov rdi, 0
+  xor rdx, rdx
+  xor r10, r8
+  xor r8, r8
+  syscall
 
 	mov dword [cpid], -0x1
 	jmp _rloop
@@ -232,7 +234,7 @@ _subz:
 ;Splits at the current position and puts the address of the argument on the stack
 _subzp:
 	mov byte [r8+r15], 0x0
-	lea rax, [r8+r15+0x1]
+	lea rax, [r8+r15+1]
 	push rax
 	jmp _parse1
 
