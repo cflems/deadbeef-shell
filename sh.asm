@@ -56,7 +56,7 @@ _rloop:
 
 _rloopr:
 	mov rax, sys_read
-	mov rdi, 0x0
+	xor rdi, rdi
 	mov rsi, r15
 	mov rdx, 0xff
 	syscall
@@ -81,7 +81,7 @@ _exec:
 	mov rax, stub_execve
 	mov rdi, r13
 	mov rsi, r14
-	mov rdx, 0x0
+	xor rdx, rdx
 	syscall
 
 	; and now kill the child process
@@ -106,7 +106,7 @@ _wait4_it:
 _parse_path:
 	mov rax, sys_open
 	mov rdi, env
-	mov rsi, 0x0
+	xor rsi, rsi
 	syscall
 	cmp rax, 0x0
 	jl _quit
@@ -409,5 +409,5 @@ _weol:
 
 _quit:
 	mov rax, sys_exit
-	mov rdi, 0x0
+	xor rdi, rdi
 	syscall
