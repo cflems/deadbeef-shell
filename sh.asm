@@ -13,6 +13,9 @@ section .data
 
   ;Indicates that a file can be accessed in the way specified
   F_OK equ 0x0
+  
+  ;option for waitid
+  P_PGID equ 2
   ;Syscall constants
   sys_read equ 0x00
   sys_write equ 0x01
@@ -100,7 +103,7 @@ _wait_for_proc:
   mov rax, sys_waitid
   mov rdi, 0
   xor rdx, rdx
-  xor r10, r8
+  mov r10, P_PGID
   xor r8, r8
   syscall
 
