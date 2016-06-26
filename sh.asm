@@ -28,6 +28,7 @@ section .data
   sys_exit equ 0x3c
   sys_wait4 equ 0x3d
   sys_kill equ 0x3e
+  sys_chdir equ 0x50
   sys_waitid equ 0xf7
 
 
@@ -262,10 +263,15 @@ _parse3:
 	je _parse4
   ;r15 holds the name that the user entered, so we'll use that for shell builtins
   mov rcx,`\0\0\0exit\0`
-  mov r13, [r15] ; Add exit codes later
-  shl r13, 24 ;Remove the last character
+  mov r13, [r15]
+  shl r13, 24 ;Remove the last character, because it's an arg not the name of it
   cmp r13, rcx
   je _builtin_exit
+  mov rcx,`\0\0\0\0\0cd\0`
+  shl r13, 16 ;Remove the extra characters for cd, note how we're doing the
+              ;longest function names first then the shorter later
+  cmp r13, rcx
+  je _builtin_cd
   ;END OF BUILTINS
 	mov r13, r15
 	mov rcx, [r9+r8*8]
@@ -425,6 +431,14 @@ _quit:
 	xor rdi, rdi
 	syscall
 
+;cd [dir]
+;changes to the given directory
+_builtin_cd:
+  ;stub atm
+  mov rdi,rax
+  mov rax, sys_chdir
+  syscall
+  jmp _read_loop
 ;usage: exit [status]
 ;exits with the given status or 0 if one hasn't been provided
 _builtin_exit:
