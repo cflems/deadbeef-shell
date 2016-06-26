@@ -7,7 +7,8 @@ section .data
 	nfe: db "Error: program not found", 0x2e, `\n`
 	env: db "/etc/environment", 0x0
 	boem: db "Error: input overflows buffer", 0x2e, `\n`
-
+  invalid_int_str: db "Error: Invalid integer",`\n`
+  invalid_int_str_len: equ $-invalid_int_str
   ;Flag indicating ability to execute
   X_OK equ 0x1
 
@@ -53,7 +54,7 @@ _start:
 
 	jmp _parse_path
 
-_rloop:
+_read_loop:
 	mov rax, sys_write
 	mov rdi, 0x1
 	mov rsi, prompt
@@ -61,10 +62,10 @@ _rloop:
 	syscall
 
 	mov r8, -0x1
-	mov r12, _rloopr
+	mov r12, _read_loopr
 	jmp _bzero
 
-_rloopr:
+_read_loopr:
 	mov rax, sys_read
 	xor rdi, rdi
 	mov rsi, r15
@@ -75,6 +76,8 @@ _rloopr:
 	mov r12, _quit
 	cmp byte [r15], 0x0
 	je _weol
+  ;Start using r12 to hold the number of args
+  xor r12,r12
 
 	; call _parse
 	jmp _parse
@@ -89,9 +92,9 @@ _exec:
 
 	; now that we know what to execute, do so
 	mov rax, stub_execve
-	mov rdi, r13
-	mov rsi, r14
-	xor rdx, rdx
+	mov rdi, r13 ;Filename
+	mov rsi, r14 ;argv
+	xor rdx, rdx ;envp
 	syscall
 
 	; and now kill the child process
@@ -112,7 +115,7 @@ _wait_for_proc:
   mov r10, r12 ;restore
 
 	mov dword [cpid], -0x1
-	jmp _rloop
+	jmp _read_loop
 
 ; input: none
 ; output: r9 (path elements), r10 (length)
@@ -179,7 +182,7 @@ _pathender:
 	jne _pathender
 	mov byte [r8], 0x0
 	mov r9, rsp
-	jmp _rloop
+	jmp _read_loop
 
 _pathender1:
 	inc r10
@@ -243,6 +246,7 @@ _subzp:
 	mov byte [r8+r15], 0x0
 	lea rax, [r8+r15+1]
 	push rax
+  inc r12
 	jmp _parse1
 
 _parse2:
@@ -256,6 +260,13 @@ _parse3:
 	inc r8
 	cmp r8, r10
 	je _parse4
+  ;r15 holds the name that the user entered, so we'll use that for shell builtins
+  mov rcx,`\0\0\0exit\0`
+  mov r13, [r15] ; Add exit codes later
+  shl r13, 24 ;Remove the last character
+  cmp r13, rcx
+  je _builtin_exit
+  ;END OF BUILTINS
 	mov r13, r15
 	mov rcx, [r9+r8*8]
 	push r8
@@ -267,17 +278,16 @@ _parse4: ; not found
 	mov rsi, nfe
 	mov rdx, 0x1a
 	syscall
-	jmp _rloop
+	jmp _read_loop
 
 ; Checks that the program rbx can be executed
 _parse5:
-	pop r8
-
   mov rax, sys_access
   mov rdi, rbx
   mov rsi, X_OK
 	syscall
 
+  pop r8
   ;Check if it can be executed
 	cmp rax, F_OK
 	jl _parse3
@@ -396,7 +406,7 @@ __sigint_c: ; kill the child
 	syscall
 
 _sigint_nc:
-	mov r12, _rloop
+	mov r12, _read_loop
 	jmp _weol
 
 ; input: r12 (return address)
@@ -414,3 +424,38 @@ _quit:
 	mov rax, sys_exit
 	xor rdi, rdi
 	syscall
+
+;usage: exit [status]
+;exits with the given status or 0 if one hasn't been provided
+_builtin_exit:
+  ;convert first arg to an int if present
+  ;exit with that code
+  _string_to_int:
+    xor rdi, rdi
+    ;accumulate in rdi since it's also the register used to provide the status
+    ;to sys_exit
+    xor rdx, rdx
+    cmp r12, 0
+    jz _string_to_int_end
+  _string_to_int_loop:
+    mov dl, [rax] ; Convert this to a number
+    cmp dl, 0 ;Checks for NULL
+    jz _string_to_int_end
+    sub dl, `0` ;sub because we'll need to do this anyway
+    jl _invalid_int
+    cmp dl, 9 ;since we've already subtracted we can just compase with 9
+    jg _invalid_int
+    imul rdi,10
+    add rdi, rdx
+    inc rax
+    jmp _string_to_int_loop
+  _string_to_int_end:
+ 	mov rax, sys_exit
+ 	syscall
+_invalid_int:
+  mov rax,sys_write
+	mov rdi, 0x1
+	mov rsi, invalid_int_str
+	mov rdx, invalid_int_str_len
+  syscall
+  jmp _read_loop
