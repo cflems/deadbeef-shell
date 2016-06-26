@@ -434,7 +434,6 @@ _quit:
 ;cd [dir]
 ;changes to the given directory
 _builtin_cd:
-  ;stub atm
   mov rdi,rax
   mov rax, sys_chdir
   syscall
