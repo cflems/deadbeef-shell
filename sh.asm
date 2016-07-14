@@ -7,7 +7,9 @@ section .data
 	nfe: db "Error: program not found", 0x2e, `\n`
 	env: db "/etc/environment", 0x0
 	boem: db "Error: input overflows buffer", 0x2e, `\n`
-  invalid_int_str: db "Error: Invalid integer",`\n`
+  no_dir_str: db "cd: Unknown directory",`\n`
+  no_dir_str_len: equ $-no_dir_str
+  invalid_int_str: db "exit: Invalid integer",`\n`
   invalid_int_str_len: equ $-invalid_int_str
   ;Flag indicating ability to execute
   X_OK equ 0x1
@@ -431,11 +433,18 @@ _quit:
 	xor rdi, rdi
 	syscall
 
-;cd [dir]
+;cd [dir (rax)]
 ;changes to the given directory
 _builtin_cd:
   mov rdi,rax
   mov rax, sys_chdir
+  syscall
+  cmp rax, 0
+  jz _read_loop
+  mov rax, sys_write
+  mov rdi, 0x1
+  mov rsi, no_dir_str
+  mov rdx, no_dir_str_len
   syscall
   jmp _read_loop
 ;usage: exit [status]
