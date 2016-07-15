@@ -109,7 +109,7 @@ _wait_for_proc:
 
   mov rsi, rax
   mov rax, sys_waitid
-  mov rdi, 0
+  xor rdi, rdi
   xor rdx, rdx
   mov r10, P_PGID
   xor r8, r8
