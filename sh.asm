@@ -19,6 +19,12 @@ section .data
 
   ;option for waitid
   P_PGID equ 2
+  
+  ;Special file descriptors
+  fd_stdin equ 0x00
+  fd_stdout equ 0x01
+  fd_stderr equ 0x02
+  
   ;Syscall constants
   sys_read equ 0x00
   sys_write equ 0x01
@@ -50,7 +56,7 @@ _start:
 	mov rbx, rsp
 
 	mov rax, sys_write
-	mov rdi, 0x1
+	mov rdi, fd_stdout
 	mov rsi, msg
 	mov rdx, 0x1b
 	syscall
@@ -59,7 +65,7 @@ _start:
 
 _read_loop:
 	mov rax, sys_write
-	mov rdi, 0x1
+	mov rdi, fd_stdout
 	mov rsi, prompt
 	mov rdx, 0xd
 	syscall
@@ -70,7 +76,7 @@ _read_loop:
 
 _read_loopr:
 	mov rax, sys_read
-	xor rdi, rdi
+	xor rdi, rdi ;stdin
 	mov rsi, r15
 	mov rdx, 0xff
 	syscall
@@ -282,7 +288,7 @@ _parse3:
 
 _parse4: ; not found
 	mov rax, sys_write
-	mov rdi, 0x1
+	mov rdi, fd_stdout
 	mov rsi, nfe
 	mov rdx, 0x1a
 	syscall
@@ -422,7 +428,7 @@ _sigint_nc:
 ; Writes end of line to the terminal
 _weol:
 	mov rax, sys_write
-	mov rdi, 0x1
+	mov rdi, fd_stdout
 	mov rsi, eol
 	mov rdx, 0x1
 	syscall
@@ -442,7 +448,7 @@ _builtin_cd:
   test rax, rax
   jz _read_loop
   mov rax, sys_write
-  mov rdi, 0x1
+  mov rdi, fd_stdout
   mov rsi, no_dir_str
   mov rdx, no_dir_str_len
   syscall
@@ -476,7 +482,7 @@ _builtin_exit:
  	syscall
 _invalid_int:
   mov rax,sys_write
-	mov rdi, 0x1
+	mov rdi, fd_stdout
 	mov rsi, invalid_int_str
 	mov rdx, invalid_int_str_len
   syscall
