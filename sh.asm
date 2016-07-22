@@ -129,7 +129,7 @@ _parse_path:
 	mov rdi, env
 	xor rsi, rsi
 	syscall
-	cmp rax, 0x0
+	test rax, rax ;check if rax is 0
 	jl _quit
 
 	mov r8, -0x1
@@ -142,7 +142,7 @@ _parse_path2:
 	mov rsi, r9
 	mov rdx, 0xff
 	syscall
-	cmp rax, 0x0
+	test rax, rax
 	jl _quit
 	mov r8, r9
 	dec r8
@@ -168,7 +168,7 @@ _pathfinder:
 	mov byte al, [r8+5]
 	cmp al, `"`
 	jne _pathfinder
-	cmp al, 0x0
+	test al, al ;checks for 0
 	je _quit
 	add r8, 0x6
 	mov r10, 0x1
@@ -439,7 +439,7 @@ _builtin_cd:
   mov rdi,rax
   mov rax, sys_chdir
   syscall
-  cmp rax, 0
+  test rax, rax
   jz _read_loop
   mov rax, sys_write
   mov rdi, 0x1
@@ -461,7 +461,7 @@ _builtin_exit:
     jz _string_to_int_end
   _string_to_int_loop:
     mov dl, [rax] ; Convert this to a number
-    cmp dl, 0 ;Checks for NULL
+    test dl, dl ;Checks for NULL
     jz _string_to_int_end
     sub dl, `0` ;sub because we'll need to do this anyway
     jl _invalid_int
