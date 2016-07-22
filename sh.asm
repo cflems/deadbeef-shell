@@ -1,43 +1,51 @@
 section .data
-	sigs: dd 0x2
-	cpid: dd 0x0
-	eol: db `\n`
-	msg: db "Welcome to deadbeef shell", 0x21, `\n`
-	prompt: db "[0xdeadbeef]", 0x20
-	nfe: db "Error: program not found", 0x2e, `\n`
-	env: db "/etc/environment", 0x0
-	boem: db "Error: input overflows buffer", 0x2e, `\n`
-  no_dir_str: db "cd: Unknown directory",`\n`
-  no_dir_str_len: equ $-no_dir_str
-  invalid_int_str: db "exit: Invalid integer",`\n`
-  invalid_int_str_len: equ $-invalid_int_str
-  ;Flag indicating ability to execute
-  X_OK equ 0x1
+	sigs dd 0x2
+	cpid dd 0x0
+	eol db `\n`
+	msg db "Welcome to deadbeef shell!", `\n`
+	env_str db "/etc/environment", 0x0
 
-  ;Indicates that a file can be accessed in the way specified
-  F_OK equ 0x0
+  prompt_str db "[0xdeadbeef] "
+  prompt_str_len equ $-prompt_str
+  
+	not_func_str db "Error: program not found.", `\n`
+  not_func_str_len equ $-not_func_str
 
-  ;option for waitid
-  P_PGID equ 2
-  
-  ;Special file descriptors
-  fd_stdin equ 0x00
-  fd_stdout equ 0x01
-  fd_stderr equ 0x02
-  
-  ;Syscall constants
-  sys_read equ 0x00
-  sys_write equ 0x01
-  sys_open equ 0x02
-  sys_close equ 0x03
-  sys_access equ 0x15
-  stub_fork equ 0x39
-  stub_execve equ 0x3b
-  sys_exit equ 0x3c
-  sys_wait4 equ 0x3d
-  sys_kill equ 0x3e
-  sys_chdir equ 0x50
-  sys_waitid equ 0xf7
+	boe_str db "Error: input overflows buffer.", `\n`
+  boe_str_len equ $-boe_str
+
+	no_dir_str db "cd: Unknown directory.",`\n`
+	no_dir_str_len equ $-no_dir_str
+
+	invalid_int_str db "exit: Invalid integer.",`\n`
+	invalid_int_str_len equ $-invalid_int_str
+	;Flag indicating ability to execute
+	X_OK equ 0x1
+
+	;Indicates that a file can be accessed in the way specified
+	F_OK equ 0x0
+
+	;option for waitid
+	P_PGID equ 2
+
+	;Special file descriptors
+	fd_stdin equ 0x00
+	fd_stdout equ 0x01
+	fd_stderr equ 0x02
+
+	;Syscall constants
+	sys_read equ 0x00
+	sys_write equ 0x01
+	sys_open equ 0x02
+	sys_close equ 0x03
+	sys_access equ 0x15
+	stub_fork equ 0x39
+	stub_execve equ 0x3b
+	sys_exit equ 0x3c
+	sys_wait4 equ 0x3d
+	sys_kill equ 0x3e
+	sys_chdir equ 0x50
+	sys_waitid equ 0xf7
 
 
 section .text
@@ -66,8 +74,8 @@ _start:
 _read_loop:
 	mov rax, sys_write
 	mov rdi, fd_stdout
-	mov rsi, prompt
-	mov rdx, 0xd
+	mov rsi, prompt_str
+	mov rdx, prompt_str_len
 	syscall
 
 	mov r8, -0x1
@@ -85,8 +93,8 @@ _read_loopr:
 	mov r12, _quit
 	cmp byte [r15], 0x0
 	je _weol
-  ;Start using r12 to hold the number of args
-  xor r12,r12
+	;Start using r12 to hold the number of args
+	xor r12,r12
 
 	; call _parse
 	jmp _parse
@@ -111,17 +119,17 @@ _exec:
 
 ;waits for the process to close
 _wait_for_proc:
-  mov r12, r10 ;backup
+	mov r12, r10 ;backup
 
-  mov rsi, rax
-  mov rax, sys_waitid
-  xor rdi, rdi
-  xor rdx, rdx
-  mov r10, P_PGID
-  xor r8, r8
-  syscall
+	mov rsi, rax
+	mov rax, sys_waitid
+	xor rdi, rdi
+	xor rdx, rdx
+	mov r10, P_PGID
+	xor r8, r8
+	syscall
 
-  mov r10, r12 ;restore
+	mov r10, r12 ;restore
 
 	mov dword [cpid], -0x1
 	jmp _read_loop
@@ -132,7 +140,7 @@ _wait_for_proc:
 ; other: r15 (buffer)
 _parse_path:
 	mov rax, sys_open
-	mov rdi, env
+	mov rdi, env_str
 	xor rsi, rsi
 	syscall
 	test rax, rax ;check if rax is 0
@@ -213,7 +221,7 @@ _bzero:
 ;input: r15 (buffer)
 ;output: r13 (path), r14 (arguments)
 ;clobbered: r8, rax, rbx, rcx
-_parse: ; needs special commands: cd exit export eval
+_parse:
 	;syscall 80 is chdir, so do that first, it's easiest
 	;It takes a path string.
 	;also needs pipes (|, >, <)
@@ -255,7 +263,7 @@ _subzp:
 	mov byte [r8+r15], 0x0
 	lea rax, [r8+r15+1]
 	push rax
-  inc r12
+	inc r12
 	jmp _parse1
 
 _parse2:
@@ -269,40 +277,41 @@ _parse3:
 	inc r8
 	cmp r8, r10
 	je _parse4
-  ;r15 holds the name that the user entered, so we'll use that for shell builtins
-  mov rcx,`\0\0\0exit\0`
-  mov r13, [r15]
-  shl r13, 24 ;Remove the last character, because it's an arg not the name of it
-  cmp r13, rcx
-  je _builtin_exit
-  mov rcx,`\0\0\0\0\0cd\0`
-  shl r13, 16 ;Remove the extra characters for cd, note how we're doing the
-              ;longest function names first then the shorter later
-  cmp r13, rcx
-  je _builtin_cd
-  ;END OF BUILTINS
+  ; Builtins to add: export, eval
+	;r15 holds the name that the user entered, so we'll use that for shell builtins
+	mov rcx,`\0\0\0exit\0`
+	mov r13, [r15]
+	shl r13, 24 ;Remove the last character in r13, because it's an arg not the name of it
+	cmp r13, rcx
+	je _builtin_exit
+	mov rcx,`\0\0\0\0\0cd\0`
+	shl r13, 16 ;Remove the extra characters for cd, note how we're doing the
+							;longest function names first then the shorter later
+	cmp r13, rcx
+	je _builtin_cd
+	;END OF BUILTINS
 	mov r13, r15
 	mov rcx, [r9+r8*8]
 	push r8
 	jmp _concat
 
-_parse4: ; not found
+_parse4: ; Function not found
 	mov rax, sys_write
 	mov rdi, fd_stdout
-	mov rsi, nfe
-	mov rdx, 0x1a
+	mov rsi, not_func_str
+	mov rdx, not_func_str_len
 	syscall
 	jmp _read_loop
 
 ; Checks that the program rbx can be executed
 _parse5:
-  mov rax, sys_access
-  mov rdi, rbx
-  mov rsi, X_OK
+	mov rax, sys_access
+	mov rdi, rbx
+	mov rsi, X_OK
 	syscall
 
-  pop r8
-  ;Check if it can be executed
+	pop r8
+	;Check if it can be executed
 	cmp rax, F_OK
 	jl _parse3
 
@@ -312,10 +321,10 @@ _parse6:
 	jmp _exec
 
 _parse7: ; absolute path
-  mov rax, sys_access
-  mov rdi, rbx
-  mov rsi, X_OK
-  syscall
+	mov rax, sys_access
+	mov rdi, rbx
+	mov rsi, X_OK
+	syscall
 
 	cmp rax, F_OK
 	jl _parse4
@@ -404,8 +413,8 @@ _join2:
 _boe:
 	mov rax, sys_write
 	mov rdi, 0x1
-	mov rsi, boem
-	mov rdx, 0x1f
+	mov rsi, boe_str
+	mov rdx, boe_str_len
 	jmp _quit
 
 ; interrupt signal handler
@@ -442,48 +451,48 @@ _quit:
 ;cd [dir (rax)]
 ;changes to the given directory
 _builtin_cd:
-  mov rdi,rax
-  mov rax, sys_chdir
-  syscall
-  test rax, rax
-  jz _read_loop
-  mov rax, sys_write
-  mov rdi, fd_stdout
-  mov rsi, no_dir_str
-  mov rdx, no_dir_str_len
-  syscall
-  jmp _read_loop
+	mov rdi,rax
+	mov rax, sys_chdir
+	syscall
+	test rax, rax
+	jz _read_loop
+	mov rax, sys_write
+	mov rdi, fd_stdout
+	mov rsi, no_dir_str
+	mov rdx, no_dir_str_len
+	syscall
+	jmp _read_loop
 ;usage: exit [status]
 ;exits with the given status or 0 if one hasn't been provided
 _builtin_exit:
-  ;convert first arg to an int if present
-  ;exit with that code
-  _string_to_int:
-    xor rdi, rdi
-    ;accumulate in rdi since it's also the register used to provide the status
-    ;to sys_exit
-    xor rdx, rdx
-    cmp r12, 0
-    jz _string_to_int_end
-  _string_to_int_loop:
-    mov dl, [rax] ; Convert this to a number
-    test dl, dl ;Checks for NULL
-    jz _string_to_int_end
-    sub dl, `0` ;sub because we'll need to do this anyway
-    jl _invalid_int
-    cmp dl, 9 ;since we've already subtracted we can just compase with 9
-    jg _invalid_int
-    imul rdi,10
-    add rdi, rdx
-    inc rax
-    jmp _string_to_int_loop
-  _string_to_int_end:
+	;convert first arg to an int if present
+	;exit with that code
+	_string_to_int:
+		xor rdi, rdi
+		;accumulate in rdi since it's also the register used to provide the status
+		;to sys_exit
+		xor rdx, rdx
+		cmp r12, 0
+		jz _string_to_int_end
+	_string_to_int_loop:
+		mov dl, [rax] ; Convert this to a number
+		test dl, dl ;Checks for NULL
+		jz _string_to_int_end
+		sub dl, `0` ;sub because we'll need to do this anyway
+		jl _invalid_int
+		cmp dl, 9 ;since we've already subtracted we can just compase with 9
+		jg _invalid_int
+		imul rdi,10
+		add rdi, rdx
+		inc rax
+		jmp _string_to_int_loop
+	_string_to_int_end:
  	mov rax, sys_exit
  	syscall
 _invalid_int:
-  mov rax,sys_write
+	mov rax,sys_write
 	mov rdi, fd_stdout
 	mov rsi, invalid_int_str
 	mov rdx, invalid_int_str_len
-  syscall
-  jmp _read_loop
+	syscall
+	jmp _read_loop
