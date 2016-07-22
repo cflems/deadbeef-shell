@@ -90,7 +90,7 @@ _exec:
 	mov rax, stub_fork
 	syscall
 	mov dword [cpid], eax
-	cmp dword [cpid], 0x0
+	test eax, eax ;checks if cpid is 0
 	jne _wait_for_proc
 
 	; now that we know what to execute, do so
@@ -146,7 +146,7 @@ _parse_path2:
 	jl _quit
 	mov r8, r9
 	dec r8
-
+; Reads the PATH variable
 _pathfinder:
 	inc r8
 	xor rax, rax
