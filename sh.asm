@@ -2,12 +2,11 @@ section .data
 	sigs dd 0x2
 	cpid dd 0x0
 	eol db `\n`
-	msg db "Welcome to deadbeef shell!", `\n`
 	env_str db "/etc/environment", 0x0
 
   prompt_str db "[0xdeadbeef] "
   prompt_str_len equ $-prompt_str
-  
+
 	not_func_str db "Error: program not found.", `\n`
   not_func_str_len equ $-not_func_str
 
@@ -62,12 +61,6 @@ _start:
 	mov r9, rsp
 	sub rsp, 0x110
 	mov rbx, rsp
-
-	mov rax, sys_write
-	mov rdi, fd_stdout
-	mov rsi, msg
-	mov rdx, 0x1b
-	syscall
 
 	jmp _parse_path
 
