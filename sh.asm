@@ -151,12 +151,13 @@ _parse_path2:
 	jl _quit
 	mov r8, r9
 	dec r8
+
 ; Reads the PATH variable
+	mov r10, `\0\0PATH="`
 _pathfinder:
 	inc r8
 	
 	;Check that we've found the PATH variable
-	mov r10, `\0\0PATH="`
 	mov rax, [r8]
 	shl rax, 16
 	cmp rax,r10
