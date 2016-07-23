@@ -7,6 +7,6 @@ dbg:
 	nasm sh.asm -f elf64 -o sh.o
 	ld sh.o -o sh
 	rm sh.o
-	gdb --eval-command="layout asm" -tui sh
+	gdb -q --eval-command="layout asm" -tui sh
 clean:
 	rm -f sh.o sh
