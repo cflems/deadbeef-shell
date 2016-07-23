@@ -72,8 +72,7 @@ _read_loop:
 	syscall
 
 	mov r8, -0x1
-	mov r12, _read_loopr
-	jmp _bzero
+	call _bzero
 
 _read_loopr:
 	mov rax, sys_read
@@ -140,8 +139,7 @@ _parse_path:
 	jl _quit
 
 	mov r8, -0x1
-	mov r12, _parse_path2
-	jmp _bzero
+	call _bzero
 
 _parse_path2:
 	mov rdi, rax
@@ -209,7 +207,7 @@ _bzero:
 	mov byte [r8+r15], 0x0
 	cmp r8, 0xff
 	jle _bzero
-	jmp r12
+	ret
 
 ;input: r15 (buffer)
 ;output: r13 (path), r14 (arguments)
@@ -372,8 +370,7 @@ _treg:
 	jg _boe
 	xchg r15, rbx
 	mov r8, -0x1
-	mov r12, _jrsinc
-	jmp _bzero
+	call _bzero
 
 _jrsinc:
 	xchg r15, rbx
