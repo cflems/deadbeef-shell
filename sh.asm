@@ -154,27 +154,17 @@ _parse_path2:
 ; Reads the PATH variable
 _pathfinder:
 	inc r8
-	xor rax, rax
-	mov byte al, [r8]
-	cmp al, `P`
-	jne _pathfinder
-	mov byte al, [r8+1]
-	cmp al, `A`
-	jne _pathfinder
-	mov byte al, [r8+2]
-	cmp al, `T`
-	jne _pathfinder
-	mov byte al, [r8+3]
-	cmp al, `H`
-	jne _pathfinder
-	mov byte al, [r8+4]
-	cmp al, `=`
-	jne _pathfinder
-	mov byte al, [r8+5]
-	cmp al, `"`
-	jne _pathfinder
-	test al, al ;checks for 0
-	je _quit
+	
+	;Check that we've found the PATH variable
+	mov r10, `\0\0PATH="`
+	mov rax, [r8]
+	shl rax, 16
+	cmp rax,r10
+	jne _pathfinder ;if we haven't, let's move right one and see if it's there
+	shr rax, 56
+	test al, al ;checks for a null terminator after 'PATH='
+	jz _quit
+	
 	add r8, 0x6
 	mov r10, 0x1
 	push 0x0
