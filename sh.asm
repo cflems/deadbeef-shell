@@ -231,9 +231,9 @@ _parse1r:
 	jmp _parse1
 
 _sabsf:
-	cmp r8, 0x1
-	jg _parse1r
-	mov r13, 0x1
+	test r8, r8
+	je _parse1r
+	mov r13, 0x2
 	jmp _parse1r
 
 _subz:
