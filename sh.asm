@@ -71,7 +71,6 @@ _read_loop:
 	mov rdx, prompt_str_len
 	syscall
 
-	mov r8, -0x1
 	call _bzero
 
 _read_loopr:
@@ -138,7 +137,6 @@ _parse_path:
 	test rax, rax ;check if rax is 0
 	jl _quit
 
-	mov r8, -0x1
 	call _bzero
 
 _parse_path2:
@@ -191,13 +189,15 @@ _pathender1:
 	jmp _pathender
 
 ;Writes 0s in buffer r15 until r8 is 255
-;input: r8 (iterator), r15 (buffer), r12 (return address)
+;input: r15 (buffer)
 ;output: none
 _bzero:
-	inc r8
-	mov byte [r8+r15], 0x0
-	cmp r8, 0xff
-	jle _bzero
+	xor r8, r8
+	_bzero_main:
+		movups [r15+r8], xmm0
+		add r8, 16
+		cmp r8, 0xff
+		jl _bzero_main
 	ret
 
 ;input: r15 (buffer)
@@ -360,7 +360,6 @@ _treg:
 	cmp r8, 0xff
 	jg _boe
 	xchg r15, rbx
-	mov r8, -0x1
 	call _bzero
 
 _jrsinc:
