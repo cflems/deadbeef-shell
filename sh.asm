@@ -318,15 +318,15 @@ _parse7: ; absolute path
 ;input: r12 (return address), r15 (buffer)
 ;output: r8 (length)
 _strlen:
-	xor r8, r8
-
-_strlen1:
-	cmp byte [r8+r15], 0x0
-	je _parse1
-	cmp byte [r8+r15], 0xa
-	je _parse1
-	inc r8
-	jmp _strlen1
+	mov r8, -17 ;We're always going to have to take 1 away because of the newline
+	xchg rsi, rcx ;bacup rcx, let rsi get clobbered
+	_strlen1:
+		add r8, 16
+		PcmpIstrI xmm0, [r15+r8],0
+		jnz _strlen1
+	add r8, rcx
+	xchg rsi,rcx
+	jmp _parse1
 
 ; input: rcx (a), r13 (b)
 ; output: rbx (string)
