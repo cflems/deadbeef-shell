@@ -210,7 +210,7 @@ _parse:
 	;also needs pipes (|, >, <)
 	xor r13, r13 ;for _strlen
 	push r13 ;push 0
-	jmp _strlen
+	call _strlen
 
 ;r8 holds strlen so we start at the end and parse backwards
 ; go through and sub/push
@@ -316,7 +316,7 @@ _parse7: ; absolute path
 	jmp _exec
 
 
-;input: r12 (return address), r15 (buffer)
+;input: r15 (buffer)
 ;output: r8 (length)
 _strlen:
 	mov r8, -16
@@ -330,7 +330,7 @@ _strlen:
 		jnz _strlen1
 	add r8, rcx
 	xchg rsi,rcx
-	jmp _parse1
+	ret
 
 ; input: rcx (a), r13 (b)
 ; output: rbx (string)
