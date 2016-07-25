@@ -2,6 +2,7 @@ section .data
 	sigs dd 0x2
 	cpid dd 0x0
 	eol db `\n`
+	eol_mask db `\n`,`\n`,`\n`,`\n`,`\n`,`\n`,`\n`,`\n`,`\n`,`\n`,`\n`,`\n`,`\n`,`\n`,`\n`,`\n`
 	env_str db "/etc/environment", 0x0
 
   prompt_str db "[0xdeadbeef] "
@@ -231,9 +232,9 @@ _parse1r:
 	jmp _parse1
 
 _sabsf:
-	test r8, r8
-	je _parse1r
-	mov r13, 0x2
+	cmp r8, 1
+	jg _parse1r
+	mov r13, 1
 	jmp _parse1r
 
 _subz:
@@ -304,7 +305,7 @@ _parse6:
 
 _parse7: ; absolute path
 	mov rax, sys_access
-	mov rdi, rbx
+	mov rdi, r15
 	mov rsi, X_OK
 	syscall
 
@@ -318,11 +319,14 @@ _parse7: ; absolute path
 ;input: r12 (return address), r15 (buffer)
 ;output: r8 (length)
 _strlen:
-	mov r8, -17 ;We're always going to have to take 1 away because of the newline
+	mov r8, -16
 	xchg rsi, rcx ;bacup rcx, let rsi get clobbered
+	MovDqU xmm1, [eol_mask]
 	_strlen1:
 		add r8, 16
 		PcmpIstrI xmm0, [r15+r8],0
+		jnz _strlen1
+		PcmpIstrI xmm1, [r15+r8],0
 		jnz _strlen1
 	add r8, rcx
 	xchg rsi,rcx
