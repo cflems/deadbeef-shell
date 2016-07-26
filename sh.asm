@@ -273,10 +273,10 @@ _parse3:
 	cmp r13, rcx
 	je _builtin_cd
 	;END OF BUILTINS
-	mov r13, r15
-	mov rcx, [r9+r8*8]
+	;mov r13, r15
+	mov rdi, [r9+r8*8]
 	push r8
-	jmp _concat
+	jmp _concat_dir
 
 _parse4: ; Function not found
 	mov rax, sys_write
@@ -317,83 +317,65 @@ _parse7: ; absolute path
 
 
 ;input: r15 (buffer)
+;Clobbered: rsi
 ;output: r8 (length)
 _strlen:
-	mov r8, -16
+	xor r8, r8
 	xchg rsi, rcx ;bacup rcx, let rsi get clobbered
 	MovDqU xmm1, [eol_mask]
 	_strlen1:
-		add r8, 16
-		PcmpIstrI xmm0, [r15+r8],0
-		jnz _strlen1
-		PcmpIstrI xmm1, [r15+r8],0
-		jnz _strlen1
+		PcmpIstrI xmm1, [r15+r8], 122
+		jz _strlen_end
+		PcmpIstrI xmm0, [r15+r8], 122
+		jz _strlen_end
+		add r8, 15
+		jmp _strlen1
+	_strlen_end:
+	inc rcx
 	add r8, rcx
 	xchg rsi,rcx
 	ret
 
-; input: rcx (a), r13 (b)
+; input: rdi (a), r15 (b)
 ; output: rbx (string)
 ; clobbered: r8, r11
-_concat:
-	mov r8, -0x1
-	jmp _jlen1
-
-_jlen1:
+_concat_dir:
+	xor r8,r8 ;new string's length (and for _dirty_strcpy_1, also the 
+			;initial string length)
+	;Copies the contents of rdi to rbx in blocks of
+	;16, doesn't bother to clean up stuff past the null
+	;so moves that too, but it doesn't matter, just make
+	;sure the buffer is big enough
+	_dirty_strcpy_1:
+		movDqU xmm2, [rdi+r8]
+		movDqU [rbx+r8],xmm2
+		PcmpIstrI xmm1, xmm2, 122 ;if there was a newline in the 
+					;copied string, exit loop
+		jz _dirty_strcpy_1_exit
+		PcmpIstrI xmm0, xmm2, 122 ;if there was a null in the
+						;copied string exit loop
+		jz _dirty_strcpy_1_exit
+		add r8,15
+		jmp _dirty_strcpy_1
+	_dirty_strcpy_1_exit:
+	add r8,rcx
 	inc r8
-	cmp byte [r8+rcx], 0x0
-	je _jlen02
-	cmp byte [r8+rcx], 0xa
-	je _jlen02
-	jmp _jlen1
-
-_jlen02:
-	dec r8
-	mov r11, -0x1
-
-_jlen2:
+	mov byte [rbx+r8], '/'
 	inc r8
-	inc r11
-	cmp byte [r11+r13], 0x0
-	je _treg
-	cmp byte [r11+r13], 0xa
-	je _treg
-	jmp _jlen2
-
-_treg:
-	cmp r8, 0xff
-	jg _boe
-	xchg r15, rbx
-	call _bzero
-
-_jrsinc:
-	xchg r15, rbx
-	mov r8, -0x1
-	mov r11, -0x1
-
-_join1:
-	inc r8
-	cmp byte [r8+rcx], 0x0
-	je _join02
-	cmp byte [r8+rcx], 0xa
-	je _join02
-	mov al, [r8+rcx]
-	mov [r8+rbx], al
-	jmp _join1
-
-_join02:
-	mov byte [r8+rbx], `/`
-_join2:
-	inc r8
-	inc r11
-	cmp byte [r11+r13], 0x0
-	je _parse5
-	cmp byte [r11+r13], `\n`
-	je _parse5
-	mov al, [r11+r13]
-	mov [r8+rbx], al
-	jmp _join2
-
+	xor r11, r11
+	_dirty_strcpy_2:
+		movdqu xmm2, [r15+r11]
+		movdqu [rbx+r8], xmm2
+		
+		pcmpistri xmm1, xmm2, 122
+		jz _parse5
+		
+		pcmpistri xmm0, xmm2, 122
+		jz _parse5
+		
+		add r8, 15
+		add r11, 15
+		jmp _dirty_strcpy_2
 _boe:
 	mov rax, sys_write
 	mov rdi, 0x1
