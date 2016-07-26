@@ -349,9 +349,6 @@ _concat_dir:
 	_dirty_strcpy_1:
 		movDqU xmm2, [rdi+r8]
 		movDqU [rbx+r8],xmm2
-		PcmpIstrI xmm1, xmm2, 122 ;if there was a newline in the 
-					;copied string, exit loop
-		jz _dirty_strcpy_1_exit
 		PcmpIstrI xmm0, xmm2, 122 ;if there was a null in the
 						;copied string exit loop
 		jz _dirty_strcpy_1_exit
@@ -366,9 +363,6 @@ _concat_dir:
 	_dirty_strcpy_2:
 		movdqu xmm2, [r15+r11]
 		movdqu [rbx+r8], xmm2
-		
-		pcmpistri xmm1, xmm2, 122
-		jz _parse5
 		
 		pcmpistri xmm0, xmm2, 122
 		jz _parse5
