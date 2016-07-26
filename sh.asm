@@ -63,7 +63,68 @@ _start:
 	sub rsp, 0x110
 	mov rbx, rsp
 
-	jmp _parse_path
+  ; input: none
+  ; output: r9 (path elements), r10 (length)
+  ; clobbered: r8, r12
+  ; other: r15 (buffer)
+  _parse_path:
+  	mov rax, sys_open
+  	mov rdi, env_str
+  	xor rsi, rsi
+  	syscall
+  	test rax, rax ;check if rax is 0
+  	jl _quit
+
+  	call _bzero
+
+  _parse_path2:
+  	mov rdi, rax
+  	mov rax, sys_read
+  	mov rsi, r9
+  	mov rdx, 0xff
+  	syscall
+  	test rax, rax
+  	jl _quit
+  	mov r8, r9
+  	dec r8
+
+  ; Reads the PATH variable
+  	mov r10, `\0\0PATH="`
+  _pathfinder:
+  	inc r8
+
+  	;Check that we've found the PATH variable
+  	mov rax, [r8]
+  	shl rax, 16
+  	cmp rax,r10
+  	jne _pathfinder ;if we haven't, let's move right one and see if it's there
+  	shr rax, 56
+  	test al, al ;checks for a null terminator after 'PATH='
+  	jz _quit
+
+  	add r8, 0x6
+  	mov r10, 0x1
+  	push 0x0
+  	push r8
+  	dec r8
+
+  _pathender:
+  	inc r8
+  	mov al, [r8]
+  	cmp al, `:`
+  	je _pathender1
+  	cmp al, `"`
+  	jne _pathender
+  	mov byte [r8], 0x0
+  	mov r9, rsp
+  	jmp _read_loop
+
+  _pathender1:
+  	inc r10
+  	mov byte [r8], 0x0
+  	lea rcx, [r8+0x1]
+  	push rcx
+  	jmp _pathender
 
 _read_loop:
 	mov rax, sys_write
@@ -125,69 +186,6 @@ _wait_for_proc:
 
 	mov dword [cpid], -0x1
 	jmp _read_loop
-
-; input: none
-; output: r9 (path elements), r10 (length)
-; clobbered: r8, r12
-; other: r15 (buffer)
-_parse_path:
-	mov rax, sys_open
-	mov rdi, env_str
-	xor rsi, rsi
-	syscall
-	test rax, rax ;check if rax is 0
-	jl _quit
-
-	call _bzero
-
-_parse_path2:
-	mov rdi, rax
-	mov rax, sys_read
-	mov rsi, r9
-	mov rdx, 0xff
-	syscall
-	test rax, rax
-	jl _quit
-	mov r8, r9
-	dec r8
-
-; Reads the PATH variable
-	mov r10, `\0\0PATH="`
-_pathfinder:
-	inc r8
-	
-	;Check that we've found the PATH variable
-	mov rax, [r8]
-	shl rax, 16
-	cmp rax,r10
-	jne _pathfinder ;if we haven't, let's move right one and see if it's there
-	shr rax, 56
-	test al, al ;checks for a null terminator after 'PATH='
-	jz _quit
-	
-	add r8, 0x6
-	mov r10, 0x1
-	push 0x0
-	push r8
-	dec r8
-
-_pathender:
-	inc r8
-	mov al, [r8]
-	cmp al, `:`
-	je _pathender1
-	cmp al, `"`
-	jne _pathender
-	mov byte [r8], 0x0
-	mov r9, rsp
-	jmp _read_loop
-
-_pathender1:
-	inc r10
-	mov byte [r8], 0x0
-	lea rcx, [r8+0x1]
-	push rcx
-	jmp _pathender
 
 ;Writes 0s in buffer r15 until r8 is 255
 ;input: r15 (buffer)
@@ -340,7 +338,7 @@ _strlen:
 ; output: rbx (string)
 ; clobbered: r8, r11
 _concat_dir:
-	xor r8,r8 ;new string's length (and for _dirty_strcpy_1, also the 
+	xor r8,r8 ;new string's length (and for _dirty_strcpy_1, also the
 			;initial string length)
 	;Copies the contents of rdi to rbx in blocks of
 	;16, doesn't bother to clean up stuff past the null
@@ -349,10 +347,10 @@ _concat_dir:
 	_dirty_strcpy_1:
 		movDqU xmm2, [rdi+r8]
 		movDqU [rbx+r8],xmm2
-		
+
 		pcmpistri xmm1, xmm2, 122
 		jz _dirty_strcpy_1_exit
-		
+
 		PcmpIstrI xmm0, xmm2, 122 ;if there was a null in the
 						;copied string exit loop
 		jz _dirty_strcpy_1_exit
@@ -367,13 +365,13 @@ _concat_dir:
 	_dirty_strcpy_2:
 		movdqu xmm2, [r15+r11]
 		movdqu [rbx+r8], xmm2
-		
+
 		pcmpistri xmm1, xmm2, 122
 		jz _parse5
-		
+
 		pcmpistri xmm0, xmm2, 122
 		jz _parse5
-		
+
 		add r8, 15
 		add r11, 15
 		jmp _dirty_strcpy_2
