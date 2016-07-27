@@ -189,7 +189,7 @@ _wait_for_proc:
 	mov dword [cpid], -0x1
 	jmp _read_loop
 
-;Writes 0s in buffer r15 until r8 is 255
+;Writes 0s in buffer r15 until r8 reaches input_buffer_size
 ;input: r15 (buffer)
 ;output: none
 _bzero:
@@ -431,7 +431,7 @@ _builtin_exit:
 		;accumulate in rdi since it's also the register used to provide the status
 		;to sys_exit
 		xor rdx, rdx
-		cmp r12, 0
+		test r12, r12
 		jz _string_to_int_end
 	_string_to_int_loop:
 		mov dl, [rax] ; Convert this to a number
@@ -441,7 +441,7 @@ _builtin_exit:
 		jl _invalid_int
 		cmp dl, 9 ;since we've already subtracted we can just compase with 9
 		jg _invalid_int
-		imul rdi,10
+		imul rdi, 10
 		add rdi, rdx
 		inc rax
 		jmp _string_to_int_loop
