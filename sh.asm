@@ -11,9 +11,6 @@ section .data
 	not_func_str db "Error: program not found.", `\n`
   not_func_str_len equ $-not_func_str
 
-	boe_str db "Error: input overflows buffer.", `\n`
-  boe_str_len equ $-boe_str
-
 	no_dir_str db "cd: Unknown directory.",`\n`
 	no_dir_str_len equ $-no_dir_str
 
@@ -47,6 +44,16 @@ section .data
 	sys_chdir equ 0x50
 	sys_waitid equ 0xf7
 
+section .bss
+	;These must all be divisible by 16!
+	input_buffer_size equ 4096
+	input_buffer resb input_buffer_size
+	
+	path_buffer_size equ 4096
+	path_buffer resb path_buffer_size
+	
+	concat_buffer_size equ 8192
+	concat_buffer resb concat_buffer_size ;Double so the path and input can never overflow concat_buffer when combined
 
 section .text
 	global _start
@@ -54,14 +61,9 @@ section .text
 _start:
 	; TODO: handle interrupt signal
 
-	push rbp
-	mov rbp, rsp
-	sub rsp, 0x110
-	mov r15, rsp
-	sub rsp, 0x110
-	mov r9, rsp
-	sub rsp, 0x110
-	mov rbx, rsp
+	mov r15, input_buffer ;stdin input
+	mov r9, path_buffer  ;PATH variable reader
+	mov rbx, concat_buffer ;Concatenated directory and command name
 
   ; input: none
   ; output: r9 (path elements), r10 (length)
@@ -81,7 +83,7 @@ _start:
   	mov rdi, rax
   	mov rax, sys_read
   	mov rsi, r9
-  	mov rdx, 0xff
+  	mov rdx, path_buffer_size
   	syscall
   	test rax, rax
   	jl _quit
@@ -139,7 +141,7 @@ _read_loopr:
 	mov rax, sys_read
 	xor rdi, rdi ;stdin
 	mov rsi, r15
-	mov rdx, 0xff
+	mov rdx, input_buffer_size
 	syscall
 
 	; check for _quit
@@ -195,7 +197,7 @@ _bzero:
 	_bzero_main:
 		movups [r15+r8], xmm0
 		add r8, 16
-		cmp r8, 0xff
+		cmp r8, input_buffer_size
 		jl _bzero_main
 	ret
 
@@ -375,12 +377,6 @@ _concat_dir:
 		add r8, 15
 		add r11, 15
 		jmp _dirty_strcpy_2
-_boe:
-	mov rax, sys_write
-	mov rdi, 0x1
-	mov rsi, boe_str
-	mov rdx, boe_str_len
-	jmp _quit
 
 ; interrupt signal handler
 _sigint:
