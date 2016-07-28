@@ -91,20 +91,22 @@ _start:
   	dec r8
 
   ; Reads the PATH variable
-  	mov r10, `\0\0PATH="`
+  	mov r10, `\0\0\0PATH=`
   _pathfinder:
   	inc r8
 
   	;Check that we've found the PATH variable
   	mov rax, [r8]
-  	shl rax, 16
-  	cmp rax,r10
+  	shl rax, 24
+  	cmp rax, r10
   	jne _pathfinder ;if we haven't, let's move right one and see if it's there
-  	shr rax, 56
-  	test al, al ;checks for a null terminator after 'PATH='
+  	cmp byte [r8], `"`
+  	jne _pathfinder_continue
+  	inc r8
+  	cmp byte [r8], 0
   	jz _quit
-
-  	add r8, 0x6
+  _pathfinder_continue:
+  	add r8, 0x5
   	mov r10, 0x1
   	push 0x0
   	push r8
@@ -116,7 +118,13 @@ _start:
   	cmp al, `:`
   	je _pathender1
   	cmp al, `"`
-  	jne _pathender
+  	je _pathender_exit
+  	cmp al, `\n`
+  	je _pathender_exit
+  	cmp al, 0
+  	jz _pathender_exit
+  	jmp _pathender
+  _pathender_exit:
   	mov byte [r8], 0x0
   	mov r9, rsp
   	jmp _read_loop
