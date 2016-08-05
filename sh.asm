@@ -81,7 +81,7 @@ _start:
 
   _parse_path2:
   	mov rdi, rax
-  	mov rax, sys_read
+  	xor rax, rax ;sys_read
   	mov rsi, r9
   	mov rdx, path_buffer_size
   	syscall
@@ -146,7 +146,7 @@ _read_loop:
 	call _bzero
 
 _read_loopr:
-	mov rax, sys_read
+	xor rax, rax ;sys_read
 	xor rdi, rdi ;stdin
 	mov rsi, r15
 	mov rdx, input_buffer_size
