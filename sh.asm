@@ -101,7 +101,7 @@ _start:
   	cmp rax, r10
   	jne _pathfinder ;if we haven't, let's move right one and see if it's there
   	cmp byte [r8], `"`
-  	jne _pathfinder_continue
+  	je _pathfinder_continue
   	inc r8
   	cmp byte [r8], 0
   	jz _quit
