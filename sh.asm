@@ -100,10 +100,10 @@ _start:
   	shl rax, 24
   	cmp rax, r10
   	jne _pathfinder ;if we haven't, let's move right one and see if it's there
-  	cmp byte [r8], `"`
-  	je _pathfinder_continue
+  	cmp byte [r8+5], `"`
+  	jne _pathfinder_continue
   	inc r8
-  	cmp byte [r8], 0
+  	cmp byte [r8+5], 0
   	jz _quit
   _pathfinder_continue:
   	add r8, 0x5
