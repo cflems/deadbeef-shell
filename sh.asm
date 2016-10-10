@@ -60,9 +60,15 @@ section .text
 
 _start:
 	; TODO: handle interrupt signal
-
+	_handle_args:
+		pop r15 ;argc
+		_handle_args_loop:
+			pop r9 ;argv[i]
+			;Arg value
+			dec r15
+			jnz _handle_args_loop
+		add rsp, 8 ;Remove the 0 between envp and argv
 	mov r15, input_buffer ;stdin input
-	mov r9, path_buffer  ;PATH variable reader
 	mov rbx, concat_buffer ;Concatenated directory and command name
 
   ; input: none
@@ -70,72 +76,39 @@ _start:
   ; clobbered: r8, r12
   ; other: r15 (buffer)
   _parse_path:
-  	mov rax, sys_open
-  	mov rdi, env_str
-  	xor rsi, rsi
-  	syscall
-  	test rax, rax ;check if rax is 0
-  	jl _quit
-
-  	call _bzero
-
-  _parse_path2:
-  	mov rdi, rax
-  	xor rax, rax ;sys_read
-  	mov rsi, r9
-  	mov rdx, path_buffer_size
-  	syscall
-  	test rax, rax
-  	jl _quit
-  	mov r8, r9
-  	dec r8
-
-  ; Reads the PATH variable
-  	mov r10, `\0\0\0PATH=`
-  _pathfinder:
-  	inc r8
-
-  	;Check that we've found the PATH variable
-  	mov rax, [r8]
-  	shl rax, 24
-  	cmp rax, r10
-  	jne _pathfinder ;if we haven't, let's move right one and see if it's there
-  	cmp byte [r8+5], `"`
-  	jne _pathfinder_continue
-  	inc r8
-  	cmp byte [r8+5], 0
-  	jz _quit
-  _pathfinder_continue:
-  	add r8, 0x5
-  	mov r10, 0x1
-  	push 0x0
-  	push r8
-  	dec r8
-
-  _pathender:
-  	inc r8
-  	mov al, [r8]
-  	cmp al, `:`
-  	je _pathender1
-  	cmp al, `"`
-  	je _pathender_exit
-  	cmp al, `\n`
-  	je _pathender_exit
-  	cmp al, 0
-  	jz _pathender_exit
-  	jmp _pathender
-  _pathender_exit:
-  	mov byte [r8], 0x0
-  	mov r9, rsp
-  	jmp _read_loop
-
-  _pathender1:
-  	inc r10
-  	mov byte [r8], 0x0
-  	lea rcx, [r8+0x1]
-  	push rcx
-  	jmp _pathender
-
+	mov r10, `\0\0\0PATH=`
+	_parse_path_loop:
+		pop r8
+		;If we get to the end and find no path exit
+		cmp r8, 0
+		je _quit
+		mov r12, [r8]
+		shl r12, 24
+		cmp r12, r10
+		jne _parse_path_loop
+	;The start of the array
+	add r8, 5
+	mov r10, 1
+	push 0
+	push r8
+	dec r8
+	
+	_path_split_loop:
+		inc r8
+		mov al, [r8]
+		cmp al, 0
+		je _path_split_exit
+		
+		cmp al, `:`
+		jne _path_split_loop
+		;Add the path to the stack
+		inc r10
+		mov byte [r8], 0
+		lea rcx, [r8+1]
+		push rcx
+		jmp _path_split_loop
+	_path_split_exit:
+		mov r9, rsp
 _read_loop:
 	mov rax, sys_write
 	mov rdi, fd_stdout
