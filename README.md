@@ -1,5 +1,5 @@
 # Weaponization Effort
-===
+
 The goal of the weaponization effort is to produce a shell code, similar to
 those found on [shell-storm](http://shell-storm.org/shellcode/), injectable
 directly into a buffer in the event that traditional options such as /bin/sh
