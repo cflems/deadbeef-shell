@@ -10,4 +10,3 @@ do not condone any such attacks.
 To do (lowest to highest priority):  
 - Strip instructions resulting in 0x0 characters in the compiled output.
 - Reduce total size and number of instructions.
-===
