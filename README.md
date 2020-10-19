@@ -1,5 +1,5 @@
 # deadbeef-shell
-===  
+
 The deadbeef shell is a fast, minimalist shell written in x86\_64 
 Assembly for Linux. Currently it contains two builtins: cd and exit. It 
 can execute any program as a direct path (/path/to/program), from the PATH 
