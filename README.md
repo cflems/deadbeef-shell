@@ -1,14 +1,13 @@
-# deadbeef-shell
-===  
-The deadbeef shell is a fast, minimalist shell written in x86_64 
-Assembly for Linux. Currently it contains two builtins: cd and exit. It 
-can execute any program as a direct path (/path/to/program), from the PATH 
-variable (progam) or as a relative path (./program). Arguments are 
-separated by spaces.  
+# Weaponization Effort
+===
+The goal of the weaponization effort is to produce a shell code, similar to
+those found on [shell-storm](http://shell-storm.org/shellcode/), injectable
+directly into a buffer in the event that traditional options such as /bin/sh
+become inaccessible. Shell codes are primarily used in overflow attacks, and
+this project is merely an educational exercise. The authors of this project
+do not condone any such attacks.
+
 To do (lowest to highest priority):  
- - Implement environment variables, pass them to programs and provide 
- export.
- - Implement variables ($variablename).
- - Implement providing a file as an argument instead of stdin so that the 
- shell can be used as an interpreter.  
- - Implement speech marks to separate arguments.  
+- Strip instructions resulting in 0x0 characters in the compiled output.
+- Reduce total size and number of instructions.
+===
