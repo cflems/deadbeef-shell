@@ -1,5 +1,5 @@
 all:
-	nasm sh.asm -f elf64 -o sh.o
+	nasm sh.s -f elf64 -o sh.o
 	ld sh.o -o sh
 	strip sh
 	rm sh.o
